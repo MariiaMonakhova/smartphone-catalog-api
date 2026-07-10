@@ -11,6 +11,4 @@ use RuntimeException;
  * The API layer translates this into a 503 Service Unavailable response so the
  * client knows the failure is transient and upstream, not a bad request.
  */
-class ExchangeRateUnavailableException extends RuntimeException
-{
-}
+class ExchangeRateUnavailableException extends RuntimeException {}

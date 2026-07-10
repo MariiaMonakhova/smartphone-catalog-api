@@ -19,6 +19,7 @@ prices converted to **UAH** and **EUR** using live
 - [Database schema](#database-schema)
 - [How the application is organised](#how-the-application-is-organised)
 - [Testing](#testing)
+- [Code style](#code-style)
 - [A note on AI usage](#a-note-on-ai-usage)
 
 ---
@@ -35,15 +36,16 @@ prices converted to **UAH** and **EUR** using live
 
 ## Tech stack
 
-| Concern        | Choice                                             |
-|----------------|----------------------------------------------------|
-| Language       | PHP 8.5 (≥ 8.4 required)                            |
-| Framework      | Laravel 13                                          |
-| ORM            | Eloquent                                            |
-| App database   | MySQL 8.4 (via Docker Compose)                      |
-| Test database  | SQLite in-memory (zero external dependencies)       |
-| Tests          | Pest 4                                              |
-| HTTP client    | Laravel HTTP client (`Illuminate\Http\Client`)      |
+| Concern       | Choice                                           |
+| ------------- | ------------------------------------------------ |
+| Language      | PHP 8.5 (≥ 8.4 required)                         |
+| Framework     | Laravel 13                                       |
+| ORM           | Eloquent                                         |
+| App database  | MySQL 8.4 (via Docker Compose)                   |
+| Test database | SQLite in-memory (zero external dependencies)    |
+| Tests         | Pest 4                                           |
+| HTTP client   | Laravel HTTP client (`Illuminate\Http\Client`)   |
+| API docs      | Scramble (auto-generated OpenAPI at `/docs/api`) |
 
 ---
 
@@ -82,24 +84,28 @@ The API is now available at `http://127.0.0.1:8000/api`.
 
 ## API reference
 
+> **Interactive docs:** once the server is running, open
+> **<http://127.0.0.1:8000/docs/api>** for a full OpenAPI reference with a
+> live **Try It** console, or grab the raw spec at `/docs/api.json`.
+
 Base path: `/api`
 
-| Method   | Endpoint             | Description                                                        |
-|----------|----------------------|--------------------------------------------------------------------|
-| `GET`    | `/products`          | List products. Supports `?page=`, `?limit=`, `?brand=`, `?currency=`. |
-| `GET`    | `/products/{id}`     | Get one product by local ID. Supports `?currency=`.                |
-| `POST`   | `/products`          | Create a product from a JSON body.                                 |
-| `PATCH`  | `/products/{id}`     | Partial update — only fields present in the body are changed.      |
-| `DELETE` | `/products/{id}`     | Delete a product.                                                  |
+| Method   | Endpoint         | Description                                                           |
+| -------- | ---------------- | --------------------------------------------------------------------- |
+| `GET`    | `/products`      | List products. Supports `?page=`, `?limit=`, `?brand=`, `?currency=`. |
+| `GET`    | `/products/{id}` | Get one product by local ID. Supports `?currency=`.                   |
+| `POST`   | `/products`      | Create a product from a JSON body.                                    |
+| `PATCH`  | `/products/{id}` | Partial update — only fields present in the body are changed.         |
+| `DELETE` | `/products/{id}` | Delete a product.                                                     |
 
 ### Query parameters (list)
 
-| Param      | Default | Notes                                             |
-|------------|---------|---------------------------------------------------|
-| `page`     | `1`     | Page number.                                      |
-| `limit`    | `20`    | Items per page (1–100).                           |
-| `brand`    | —       | Exact-match brand filter.                         |
-| `currency` | `USD`   | One of `USD`, `EUR`, `UAH` (case-insensitive).    |
+| Param      | Default | Notes                                          |
+| ---------- | ------- | ---------------------------------------------- |
+| `page`     | `1`     | Page number.                                   |
+| `limit`    | `20`    | Items per page (1–100).                        |
+| `brand`    | —       | Exact-match brand filter.                      |
+| `currency` | `USD`   | One of `USD`, `EUR`, `UAH` (case-insensitive). |
 
 ### Example requests
 
@@ -150,14 +156,14 @@ Every product carries `currency`, the converted `price`, and the untouched
 
 ### Status codes
 
-| Code  | When                                                            |
-|-------|-----------------------------------------------------------------|
-| `200` | Successful read / update.                                       |
-| `201` | Product created.                                               |
-| `204` | Product deleted.                                               |
-| `404` | Product not found.                                            |
-| `422` | Validation failed (bad body, or unsupported `?currency=`).     |
-| `503` | Currency conversion requested but NBU rates are unavailable.   |
+| Code  | When                                                         |
+| ----- | ------------------------------------------------------------ |
+| `200` | Successful read / update.                                    |
+| `201` | Product created.                                             |
+| `204` | Product deleted.                                             |
+| `404` | Product not found.                                           |
+| `422` | Validation failed (bad body, or unsupported `?currency=`).   |
+| `503` | Currency conversion requested but NBU rates are unavailable. |
 
 ---
 
@@ -171,11 +177,11 @@ at read time.
 The NBU API returns the **UAH value of one unit** of a currency (e.g.
 `USD → 44.4950` means 1 USD = 44.4950 UAH). From that:
 
-| Target | Formula                                  | Rationale                                        |
-|--------|------------------------------------------|--------------------------------------------------|
-| `USD`  | `price` (unchanged)                      | Stored currency; the default. No NBU call.       |
-| `UAH`  | `price × rate(USD)`                      | Direct NBU rate.                                 |
-| `EUR`  | `price × rate(USD) / rate(EUR)`          | Cross-rate via UAH — NBU only quotes against UAH.|
+| Target | Formula                         | Rationale                                         |
+| ------ | ------------------------------- | ------------------------------------------------- |
+| `USD`  | `price` (unchanged)             | Stored currency; the default. No NBU call.        |
+| `UAH`  | `price × rate(USD)`             | Direct NBU rate.                                  |
+| `EUR`  | `price × rate(USD) / rate(EUR)` | Cross-rate via UAH — NBU only quotes against UAH. |
 
 Implemented in [`app/Services/CurrencyConverter.php`](app/Services/CurrencyConverter.php).
 
@@ -187,7 +193,7 @@ Implemented in [`app/Services/NbuExchangeRateService.php`](app/Services/NbuExcha
   current day** (`Cache::remember(..., now()->endOfDay(), ...)`). So NBU is hit
   **at most once per currency per day**, no matter how many API requests arrive.
   Rates change once daily, so nothing fresher is needed.
-- On every successful fetch we *also* store a non-expiring copy under
+- On every successful fetch we _also_ store a non-expiring copy under
   `nbu:rate:{CC}:last_good`.
 
 ### When the NBU API is unavailable
@@ -195,10 +201,10 @@ Implemented in [`app/Services/NbuExchangeRateService.php`](app/Services/NbuExcha
 Handled gracefully, in this order of preference:
 
 1. **Fresh daily cache** — served if present (no network call at all).
-2. **Stale "last known good" rate** — if the daily cache is cold *and* NBU is
+2. **Stale "last known good" rate** — if the daily cache is cold _and_ NBU is
    unreachable, the last successfully fetched rate is used, so the API keeps
    working through a transient outage.
-3. **`503 Service Unavailable`** — only if there is *no* usable rate at all. The
+3. **`503 Service Unavailable`** — only if there is _no_ usable rate at all. The
    response makes clear the failure is upstream and transient, not a bad request.
 
 `USD` requests never touch NBU, so they always succeed regardless of NBU health.
@@ -234,35 +240,35 @@ and [`app/Services/DummyJsonClient.php`](app/Services/DummyJsonClient.php).
 A single `products` table. Prices are stored in USD; JSON-shaped fields
 (dimensions, tags, images, meta) use JSON columns.
 
-| Column                   | Type                          | Notes                                                        |
-|--------------------------|-------------------------------|--------------------------------------------------------------|
-| `id`                     | `bigint` (PK, auto-increment) | Local identifier used by the API.                            |
-| `external_id`            | `bigint`, nullable, **unique**| DummyJSON id. Enables idempotent seeding. `null` for API-created products. |
-| `title`                  | `varchar`                     | Required.                                                    |
-| `description`            | `text`, nullable              |                                                              |
-| `category`               | `varchar`, nullable           |                                                              |
-| `price`                  | `decimal(12,2)`               | **Stored in USD.**                                           |
-| `discount_percentage`    | `decimal(5,2)`, nullable      |                                                              |
-| `rating`                 | `decimal(3,2)`, nullable      |                                                              |
-| `stock`                  | `integer`, nullable           |                                                              |
-| `brand`                  | `varchar`, nullable, indexed  | Drives the `?brand=` filter.                                 |
-| `sku`                    | `varchar`, nullable           |                                                              |
-| `weight`                 | `decimal(8,2)`, nullable      |                                                              |
-| `dimensions`             | `json`, nullable              | `{ width, height, depth }`.                                  |
-| `warranty_information`   | `varchar`, nullable           |                                                              |
-| `shipping_information`   | `varchar`, nullable           |                                                              |
-| `availability_status`    | `varchar`, nullable           |                                                              |
-| `return_policy`          | `text`, nullable              |                                                              |
-| `minimum_order_quantity` | `integer`, nullable           |                                                              |
-| `tags`                   | `json`, nullable              |                                                              |
-| `images`                 | `json`, nullable              |                                                              |
-| `thumbnail`              | `varchar`, nullable           |                                                              |
-| `meta`                   | `json`, nullable              | Barcode, QR code, etc.                                       |
-| `created_at`             | `timestamp`                   |                                                              |
-| `updated_at`             | `timestamp`                   |                                                              |
+| Column                   | Type                           | Notes                                                                      |
+| ------------------------ | ------------------------------ | -------------------------------------------------------------------------- |
+| `id`                     | `bigint` (PK, auto-increment)  | Local identifier used by the API.                                          |
+| `external_id`            | `bigint`, nullable, **unique** | DummyJSON id. Enables idempotent seeding. `null` for API-created products. |
+| `title`                  | `varchar`                      | Required.                                                                  |
+| `description`            | `text`, nullable               |                                                                            |
+| `category`               | `varchar`, nullable            |                                                                            |
+| `price`                  | `decimal(12,2)`                | **Stored in USD.**                                                         |
+| `discount_percentage`    | `decimal(5,2)`, nullable       |                                                                            |
+| `rating`                 | `decimal(3,2)`, nullable       |                                                                            |
+| `stock`                  | `integer`, nullable            |                                                                            |
+| `brand`                  | `varchar`, nullable, indexed   | Drives the `?brand=` filter.                                               |
+| `sku`                    | `varchar`, nullable            |                                                                            |
+| `weight`                 | `decimal(8,2)`, nullable       |                                                                            |
+| `dimensions`             | `json`, nullable               | `{ width, height, depth }`.                                                |
+| `warranty_information`   | `varchar`, nullable            |                                                                            |
+| `shipping_information`   | `varchar`, nullable            |                                                                            |
+| `availability_status`    | `varchar`, nullable            |                                                                            |
+| `return_policy`          | `text`, nullable               |                                                                            |
+| `minimum_order_quantity` | `integer`, nullable            |                                                                            |
+| `tags`                   | `json`, nullable               |                                                                            |
+| `images`                 | `json`, nullable               |                                                                            |
+| `thumbnail`              | `varchar`, nullable            |                                                                            |
+| `meta`                   | `json`, nullable               | Barcode, QR code, etc.                                                     |
+| `created_at`             | `timestamp`                    |                                                                            |
+| `updated_at`             | `timestamp`                    |                                                                            |
 
 **Relationships:** none. The catalog is a single entity. DummyJSON `reviews` are
-intentionally out of scope — this service is a smartphone *catalog*, and modelling
+intentionally out of scope — this service is a smartphone _catalog_, and modelling
 reviews would add a table and endpoints the assignment does not ask for.
 
 Defined in
@@ -343,6 +349,21 @@ Coverage includes:
   stale-cache fallback.
 - **Seeding:** import correctness (incl. JSON column mapping), idempotency across
   repeated runs, and in-place updates when upstream data changes.
+
+---
+
+## Code style
+
+PHP is formatted with [Laravel Pint](https://laravel.com/docs/pint) (the
+`laravel` preset, configured in `pint.json`). Markdown, YAML and JSON follow the
+[Prettier](https://prettier.io) config in `.prettierrc`.
+
+```bash
+composer format   # auto-format all PHP (vendor/bin/pint)
+composer lint     # check formatting without changing files (pint --test)
+```
+
+`composer lint` is CI-friendly — it exits non-zero if anything is unformatted.
 
 ---
 

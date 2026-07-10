@@ -17,9 +17,14 @@ use Illuminate\Validation\Rule;
 class ProductController extends Controller
 {
     /**
-     * GET /api/products
+     * List products
      *
-     * Supports ?page=, ?limit=, ?brand= and ?currency=.
+     * Returns a paginated list of products. Filter by `brand` and page with
+     * `page`/`limit`. Pass `currency` (USD/EUR/UAH) to convert each product's
+     * `price`; the original USD value is always returned as `price_usd`.
+     *
+     * Responds `503` if a non-USD currency is requested but the exchange rate is
+     * unavailable.
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -47,7 +52,10 @@ class ProductController extends Controller
     }
 
     /**
-     * POST /api/products
+     * Create a product
+     *
+     * Creates a product from a JSON body. `price` is interpreted as USD.
+     * Returns the created product with `201 Created`.
      */
     public function store(StoreProductRequest $request): JsonResponse
     {
@@ -59,9 +67,12 @@ class ProductController extends Controller
     }
 
     /**
-     * GET /api/products/{id}
+     * Get a product
      *
-     * Supports ?currency=.
+     * Returns a single product by its local database id. Pass `currency`
+     * (USD/EUR/UAH) to convert `price`; `price_usd` always holds the stored USD
+     * value. Responds `404` if no product has that id, and `503` if a non-USD
+     * currency is requested but the exchange rate is unavailable.
      */
     public function show(Request $request, Product $product): ProductResource
     {
@@ -75,9 +86,11 @@ class ProductController extends Controller
     }
 
     /**
-     * PATCH /api/products/{id}
+     * Update a product
      *
-     * Partial update — only the fields present in the body are changed.
+     * Partial update — only the fields present in the body are changed; omitted
+     * fields keep their current values. `price` is interpreted as USD.
+     * Responds `404` if no product has that id.
      */
     public function update(UpdateProductRequest $request, Product $product): ProductResource
     {
@@ -87,7 +100,10 @@ class ProductController extends Controller
     }
 
     /**
-     * DELETE /api/products/{id}
+     * Delete a product
+     *
+     * Permanently deletes a product. Returns `204 No Content` on success, or
+     * `404` if no product has that id.
      */
     public function destroy(Product $product): Response
     {

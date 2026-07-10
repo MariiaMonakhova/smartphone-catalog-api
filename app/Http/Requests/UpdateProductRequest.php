@@ -26,7 +26,7 @@ class UpdateProductRequest extends FormRequest
      */
     public function rules(): array
     {
-        $rules = (new StoreProductRequest())->rules();
+        $rules = (new StoreProductRequest)->rules();
 
         foreach ($rules as $field => $constraints) {
             $constraints = array_values(array_diff($constraints, ['required']));
