@@ -1,5 +1,7 @@
 # Smartphone Product Catalog
 
+[![Lint, Tests & Migrations](https://github.com/MariiaMonakhova/smartphone-catalog-api/actions/workflows/ci.yml/badge.svg)](https://github.com/MariiaMonakhova/smartphone-catalog-api/actions/workflows/ci.yml)
+
 A RESTful backend (PHP 8.4+ / Laravel 13) that manages a local catalog of
 smartphones. It seeds itself from the [DummyJSON](https://dummyjson.com) public
 API via an Artisan command, exposes CRUD endpoints for products, and can return
