@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\ExchangeRateUnavailableException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,4 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        // A currency conversion was requested but NBU rates are unavailable
+        // (and nothing usable is cached) — this is a transient upstream outage.
+        $exceptions->render(function (ExchangeRateUnavailableException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 503);
+        });
     })->create();
