@@ -22,7 +22,7 @@ prices converted to **UAH** and **EUR** using live
 - [How the application is organised](#how-the-application-is-organised)
 - [Testing](#testing)
 - [Code style](#code-style)
-- [A note on AI usage](#a-note-on-ai-usage)
+- [How AI was used](#how-ai-was-used)
 
 ---
 
@@ -369,10 +369,71 @@ composer lint     # check formatting without changing files (pint --test)
 
 ---
 
-## A note on AI usage
+## How AI was used
 
-This project was built with AI assistance (Claude). I directed the architecture
-and reviewed every file; AI accelerated scaffolding, boilerplate, test authoring,
-and this documentation. I'm happy to walk through any design decision — the
-currency cross-rate model, the idempotent-seed strategy, the NBU fallback
-behaviour, or the thin-controller/service split — in a follow-up review.
+This project was built with AI assistance (Claude), used as a pair-programmer:
+I made the product/architecture decisions and reviewed every change; AI wrote
+code and docs to that spec. Step by step, in the order it happened:
+
+1. **Chose the stack and planned the approach** _(my decision)._ Requirements
+   were: a smartphone catalog seeded from DummyJSON, CRUD, and USD/UAH/EUR
+   pricing via live NBU rates. I decided on Laravel 13 + Pest + MySQL (via
+   Docker) for the app, with SQLite in-memory for tests so the suite needs no
+   external services, and a thin-controller/service-class split so the two
+   external integrations (DummyJSON, NBU) and the conversion maths stay
+   independently testable. AI scaffolded the initial project (`composer.json`,
+   `docker-compose.yml`, `.env.example`, `phpunit.xml`) to match.
+   → [`Set up Laravel 13 project with Docker MySQL and Pest`](https://github.com/MariiaMonakhova/smartphone-catalog-api/commit/56e1031)
+
+2. **Implemented the plan** _(AI's implementation)._ Built out in
+   layers, each as its own commit so the diffs stayed reviewable: the
+   `products` migration/model/factory; the `DummyJsonClient`, cross-rate
+   `CurrencyConverter`, and `NbuExchangeRateService` (with the
+   cache → stale-fallback → 503 strategy); the CRUD controller, Form Requests,
+   and `ProductResource`; then the idempotent `products:seed` command
+   (`updateOrCreate()` keyed on `external_id`). I specified the behaviour I
+   wanted at each step (e.g. "PATCH should only touch fields that are actually
+   present," "NBU going down should degrade to a stale rate before failing");
+   AI wrote the code and I read every file before moving on.
+   → commits `4a99449`, `fe1bd5a`, `9ea10c0`, `922f7b5`
+
+3. **Wrote the test suite** _(coverage requirements, AI's test code)._ I
+   specified what needed covering — CRUD incl. validation/`404`s, currency
+   conversion incl. the `503` and stale-cache paths, and seed idempotency — and
+   asked for outbound HTTP (DummyJSON, NBU) to be faked so tests never hit the
+   network. AI wrote the Pest feature tests to that brief.
+   → [`Add Pest feature tests for CRUD, currency and seeding`](https://github.com/MariiaMonakhova/smartphone-catalog-api/commit/ccbb84c)
+
+4. **Added documentation** _(my idea, AI's draft)._ Asked for this README plus
+   a frontend-facing API doc and an architecture walkthrough. AI drafted all
+   three. On review I decided the separate `ARCHITECTURE.md`/`API_DOCS.md`
+   files duplicated what's already covered by this README and by Scramble's
+   live OpenAPI docs (`/docs/api`) — two sources of truth that would drift out
+   of sync — so I had them removed rather than maintained.
+   → [`Add project README`](https://github.com/MariiaMonakhova/smartphone-catalog-api/commit/1b2888e),
+   [`Add docs for frontend engineers and prettier`](https://github.com/MariiaMonakhova/smartphone-catalog-api/commit/ef5f0cb),
+   [`Remove local architecture files`](https://github.com/MariiaMonakhova/smartphone-catalog-api/commit/2ed0ea3)
+
+5. **Added CI and formatting** _(my idea, AI's implementation)._ Asked for a
+   GitHub Actions pipeline covering Pint linting, `composer audit`, the Pest
+   suite, and a migrations-against-real-MySQL smoke test — plus Pint/Prettier
+   config so style is enforced automatically rather than by review comments.
+   → [`Add CI`](https://github.com/MariiaMonakhova/smartphone-catalog-api/commit/55550c7)
+
+6. **Found a CI failure and fixed it** _(AI's fix)._ The first CI run
+   failed on the `tests` job with `Test directory ".../tests/Unit" not
+   found`. `phpunit.xml` declares a `Unit` test suite pointed at
+   `tests/Unit`, but at that point every test written so far was a Feature
+   test — the `Unit` folder had never held a file. Git doesn't track empty
+   directories, so on a clean CI checkout the path didn't exist on disk at
+   all, and `php artisan test` exited with code `2` before running anything.
+   I read the Actions log, diagnosed it as a missing directory rather than a
+   broken test, and asked for real unit coverage there; AI added an isolated
+   `CurrencyConverterTest` (a stubbed rate service, no HTTP/DB at all) to
+   `tests/Unit`, which fixed the run by giving the declared suite a
+   directory to find.
+   → [`Fix test ci`](https://github.com/MariiaMonakhova/smartphone-catalog-api/commit/5577ccb)
+
+I'm happy to walk through any design decision — the currency cross-rate model,
+the idempotent-seed strategy, the NBU fallback behaviour, or the
+thin-controller/service split — in a follow-up review.
