@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\ExchangeRateProvider;
 use InvalidArgumentException;
 
 /**
@@ -23,7 +24,7 @@ class CurrencyConverter
      */
     public const array SUPPORTED = ['USD', 'EUR', 'UAH'];
 
-    public function __construct(private readonly NbuExchangeRateService $rates) {}
+    public function __construct(private readonly ExchangeRateProvider $rates) {}
 
     /**
      * Convert an amount stored in USD to the target currency.

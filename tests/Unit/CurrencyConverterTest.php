@@ -1,18 +1,19 @@
 <?php
 
+use App\Contracts\ExchangeRateProvider;
 use App\Services\CurrencyConverter;
-use App\Services\NbuExchangeRateService;
 
 /**
- * A stub rate service so the converter can be tested in isolation — no HTTP,
- * no cache, no Laravel app. Returns preset UAH-per-unit rates, and fails loudly
- * if a rate is requested that the test didn't expect.
+ * A fake rate provider so the converter can be tested in isolation — no HTTP,
+ * no cache, no Laravel app, and no coupling to NbuExchangeRateService's
+ * internals. Returns preset UAH-per-unit rates, and fails loudly if a rate is
+ * requested that the test didn't expect.
  *
  * @param  array<string, float>  $rates
  */
-function stubRates(array $rates): NbuExchangeRateService
+function stubRates(array $rates): ExchangeRateProvider
 {
-    return new class($rates) extends NbuExchangeRateService
+    return new class($rates) implements ExchangeRateProvider
     {
         /** @param array<string, float> $rates */
         public function __construct(private array $rates) {}

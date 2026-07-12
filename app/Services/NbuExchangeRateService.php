@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\ExchangeRateProvider;
 use App\Exceptions\ExchangeRateUnavailableException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -23,7 +24,7 @@ use Throwable;
  *  - If neither a fresh nor a stale rate is available, an
  *    ExchangeRateUnavailableException is thrown (surfaced as HTTP 503).
  */
-class NbuExchangeRateService
+class NbuExchangeRateService implements ExchangeRateProvider
 {
     /**
      * Return the UAH value of one unit of the given currency.
